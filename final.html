@@ -12,7 +12,8 @@
     integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
     crossorigin=""></script>
     <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
-
+    <script src="./year_counted_values.js"></script>
+    <script src="./year_master_counted_values.js"></script>
     <script src="./OutlierAreas.js"></script>
 </head>
     <style>
@@ -80,11 +81,12 @@
         }
         
         .legend {
-            line-height: 18px;
+            line-height: 22px;
             color: hsl(292, 79%, 7%);
             width: fit-content;
+            line-break: auto;
             font-family: Arial, Helvetica, sans-serif;
-
+            height: 200px;
         }
         .legend i {
             width: 18px;
@@ -111,14 +113,14 @@
 <body>
 
 <h1>Where was the music in the WXYC Library released?</h1>
-<h2>Full Station Library's Release Countries Overtime (given the masters were found on Discogs)</h2>
+<h2>WXYC Chapel Hill's Station Library Release Countries Overtime (given the masters were found on Discogs)</h2>
         <h2 id = daYear>Year</h2>
         <input id = "yearSlider" type="range" name="year" min="1977" max="2023" oninput="moveSlider(this.value)" value="1977">
     <br></br>
     <div id="map"></div>
     <br></br>
     <h2>Counts for Unreliably Mappable Release Areas</h2>
-    <h2 id="specialArea"></h2>
+    <h5 id="specialArea"></h5>
     <br>  </br>
     <br>  </br>
     <h5> Credit to Discogs and their incredible data set, the WXYC tech team and the work they have already done cleaning the station data set, Copilot and DeepSeek for providing help when ability ran out, Leaflet and W3 schools for more old fashioned guide on HTML, JS and Python, and Professor Arce for all his grace (and the homeworks I referenced)</h5>
@@ -139,13 +141,12 @@
 	ext: 'png'
     }).addTo(map);
     
-
     function myStyle(feature) {
         // This the property with the DATE value.
          
         return { // the color is obtained from the getColor function
             "color": "indigo",
-            "fillColor":  getColor(feature.properties.Frequency),
+            "fillColor":  getColor(feature.properties.Frequency/normalizer),
             "weight": 2,
             "opacity": .85,
             "fill opacity": .85
@@ -153,25 +154,27 @@
         }
     };
     function getColor(d) {
-            return d >= 500  ? '#49006a' :
-            d >= 250  ? '#7a0177' :
-            d >= 100   ? '#ae017e' :
-            d >= 50   ? '#dd3497' :
-            d >= 30   ? '#f768a1' :
-            d >= 20   ? '#fa9fb5' :
-            d >= 10   ? '#fcc5c0' :
-            d >= 5   ? '#fde0dd' :
+            return d >= .3  ? '#49006a' :
+            d >= .2  ? '#7a0177' :
+            d >= .1   ? '#ae017e' :
+            d >= .05   ? '#dd3497' :
+            d >= .03   ? '#f768a1' :
+            d >= .02   ? '#fa9fb5' :
+            d >= .01   ? '#fcc5c0' :
+            d >= .005   ? '#fde0dd' :
                       '#fff7f3';
     }
     
     var geojsonLayer;
     var myCurrentSelectionYear = 1977 // the initial year to start the data
+    var normalizer=year_values["1977"]["Frequency"];
     updateMap(1977)
     function moveSlider(value) { // function called by the slider that receives the value from the slider. 
         // console.log(value)
         document.getElementById('daYear').innerHTML = 'Year: ' + value // assign the value of year into the text
         var printedString="";
         var moment;
+        normalizer=year_values[value]["Frequency"]
         for (moment in specialAreas[value]) {
             if (printedString != ""){
                 printedString=printedString+ " and "
@@ -180,6 +183,7 @@
 
             //console.log(moment);
         }
+        printedString=printedString+ " of "+normalizer+" total releases and "+ year_master_values[value]["Frequency"]+" master releases in "+value;
         document.getElementById('specialArea').innerHTML = printedString;
         updateMap(value);
         geojsonLayer?.resetStyle() // leaflet method to reassign a Style. 
@@ -193,7 +197,7 @@
         var script = document.createElement('script');
         script.src = `./split_data/data_${selectedYear}.js`;
         script.id = "data-script";
-
+        normalizer=year_values[selectedYear]["Frequency"];
         document.head.appendChild(script);
         var filteredFeatures = window[`final_data_${selectedYear}`]?.features || [];
         //console.log(filteredFeatures);
@@ -257,13 +261,13 @@
         var legend = L.control({position: 'bottomright'});
         legend.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'info legend'),
-                grades = [0, 5, 10, 20, 50, 100, 250, 500],
+                grades = [0, 5, 10, 20, 50, 100, 200, 300],
                 labels = [];
 
             for (var i = 0; i < grades.length; i++) {
                 div.innerHTML +=
-                    '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
-                    grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + ' releases'+ '<br>' : '+ releases');
+                    '<i style="background:' + getColor((grades[i] + 1)/1000) + '"></i> ' +
+                    grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + ' releases per 1000 total releases'+ '<br>' : '+ releases per 1000 total releases');
             }
             return div;
         };
