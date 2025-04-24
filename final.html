@@ -12,7 +12,7 @@
     integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
     crossorigin=""></script>
     <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
-    <script src="./full_merged_file_2.js"></script>
+
     <script src="./OutlierAreas.js"></script>
 </head>
     <style>
@@ -120,18 +120,23 @@
     <br>  </br>
     <div id="map"></div>
     <br>  </br>
-    <h5> Credit to Discogs and their incredible data set, the WXYC tech team and the work they have already done cleaning the station data set, Copilot and DeepSeek for providing help when ability ran out, and Professor Arce for all his grace (and the homeworks I referenced)</h5>
+    <h5> Credit to Discogs and their incredible data set, the WXYC tech team and the work they have already done cleaning the station data set, Copilot and DeepSeek for providing help when ability ran out, Leaflet and W3 schools for more old fashioned guide on HTML, JS and Python, and Professor Arce for all his grace (and the homeworks I referenced)</h5>
 </body>
 <script>
-    //HW made by Sarah Followill // Edited and annotated by J Arce
+       function loadData(selectedYear) {
+            var script = document.createElement('script');
+            script.src = `./split_data/data_${selectedYear}.js`;
+            document.head.appendChild(script);
+        }
 
+    //HW made by Sarah Followill // Edited and annotated by J Arce
     var map = L.map('map').setView([39,-27], 2);
     var Stadia_StamenToner = L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png?api_key=42aad57a-4089-4604-9787-4f3060f23057', {
 	minZoom: 0,
 	maxZoom: 20,
 	attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 	ext: 'png'
-}).addTo(map);
+    }).addTo(map);
     
 
     function myStyle(feature) {
@@ -176,15 +181,20 @@
         }
         document.getElementById('specialArea').innerHTML = printedString;
         updateMap(value);
-        geojsonLayer.resetStyle() // leaflet method to reassign a Style. 
+        geojsonLayer?.resetStyle() // leaflet method to reassign a Style. 
         // console.log(myCurrentSelectionYear)
     }
     function updateMap(selectedYear) {
         if (geojsonLayer) {
             map.removeLayer(geojsonLayer);
         } 
-    // Generate random points inside each polygon
-        var filteredFeatures = final_data.features.filter(f => f.properties && f.properties.Year == selectedYear);
+    // - copilot
+        var script = document.createElement('script');
+        script.src = `./split_data/data_${selectedYear}.js`;
+        script.id = "data-script";
+
+        document.head.appendChild(script);
+        var filteredFeatures = window[`final_data_${selectedYear}`]?.features || [];
         //console.log(filteredFeatures);
         geojsonLayer = L.geoJson(filteredFeatures, { style: myStyle, 
             pane: 'overlayPane', onEachFeature: onEachFeature}).addTo(map)
@@ -236,6 +246,11 @@
     window.onload = function() {
         document.getElementById('yearSlider').value = 1977;  
         document.getElementById('daYear').innerHTML = 'Year: ' + 1977
+        loadData(1977);
+        for(var i=0; i<47; i++){
+            updateMap(1977+i)
+        }
+        updateMap(1977);
     }; // slider goes back to 1900 after refreshing
         
         var legend = L.control({position: 'bottomright'});
