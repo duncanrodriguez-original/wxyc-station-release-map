@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WXYC Origin Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
+    integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
+    crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"
+    integrity="sha512-BB3hKbKWOc9Ez/TAwyWxNXeoV9c1v6FIeYiBieIWkpLjauysF18NzgR1MBNBXf8/KABdlkX68nAhlwcDFLGPCQ=="
+    crossorigin=""></script>
+    <script src="https://unpkg.com/@turf/turf@6.5.0/turf.min.js"></script>
+    <script src="./full_merged_file_2.js"></script>
+    <script src="./OutlierAreas.js"></script>
+</head>
+    <style>
+        #map {
+            margin: auto;
+            width: 900px;
+            height: 700px;
+        }
+        #yearSlider{
+            display: block;
+        /*min and max changes size of slider?*/
+            height: 30px;
+            min-width: 400px;
+            max-width: 860px;
+            margin: auto;
+            margin-top: 5px;
+            position: relative;
+        }
+        body{
+                background-color: rgb(0, 0, 0);
+            }
+        .leaflet-overlay-pane path {
+            opacity: .85 !important;
+            fill-opacity: .85 !important;
+        }
+        h1{
+            color: rgb(255, 255, 255);
+            font-family: sans-serif;
+            font-weight: bold;
+            text-align: center;
+            font-size: xx-large;
+            margin: auto;
+        }
+        h2{
+            color: rgb(255, 255, 255);
+            font-family: sans-serif;
+            font-weight: bold;
+            text-align: center;
+            font-size: x-large;
+            margin: auto;
+        }
+        h3{
+            color: rgb(7, 7, 7);
+            font-family: sans-serif;
+            font-weight: bold;
+            text-align: center;
+            font-size: medium;
+            margin: auto;
+        }
+        h4{
+            color: rgb(38, 1, 45);
+            font-family: sans-serif;
+            font-weight: bold;
+            text-align: center;
+            font-size: medium;
+            margin: auto;
+        }
+        h5{
+            color: rgb(255, 255, 255);
+            font-family: sans-serif;
+            font-weight: bold;
+            text-align: center;
+            font-size: small;
+            margin: auto;
+        }
+        
+        .legend {
+            line-height: 18px;
+            color: hsl(292, 79%, 7%);
+            width: fit-content;
+            font-family: Arial, Helvetica, sans-serif;
+
+        }
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.85;
+        }
+        .info {
+        width: fit-content;
+        padding: 6px 8px;
+        font: 14px/16px Arial, Helvetica, sans-serif;
+        background: white;
+        background: rgba(255,255,255,0.8);
+        box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        border-radius: 5px;
+    }
+    .info h4 {
+        margin: 0 0 5px;
+        color: #777;
+    }
+    </style>
+
+<body>
+
+<h1>Where was the music in the WXYC Library released?</h1>
+<h2>Full Station Library's Release Countries Overtime (given the masters were found on Discogs)</h2>
+        <h2 id = daYear>Year</h2>
+        <input id = "yearSlider" type="range" name="year" min="1977" max="2023" oninput="moveSlider(this.value)" value="1977">
+    <br></br>
+    <h2>Counts for Unreliably Mappable Release Areas</h2>
+    <h2 id="specialArea"></h2>
+    <br>  </br>
+    <div id="map"></div>
+    <br>  </br>
+    <h5> Credit to Discogs and their incredible data set, the WXYC tech team and the work they have already done cleaning the station data set, Copilot and DeepSeek for providing help when ability ran out, and Professor Arce for all his grace (and the homeworks I referenced)</h5>
+</body>
+<script>
+    //HW made by Sarah Followill // Edited and annotated by J Arce
+
+    var map = L.map('map').setView([39,-27], 2);
+    var Stadia_StamenToner = L.tileLayer('https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png?api_key=42aad57a-4089-4604-9787-4f3060f23057', {
+	minZoom: 0,
+	maxZoom: 20,
+	attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://www.stamen.com/" target="_blank">Stamen Design</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	ext: 'png'
+}).addTo(map);
+    
+
+    function myStyle(feature) {
+        // This the property with the DATE value.
+         
+        return { // the color is obtained from the getColor function
+            "color": "indigo",
+            "fillColor":  getColor(feature.properties.Frequency),
+            "weight": 2,
+            "opacity": .85,
+            "fill opacity": .85
+
+        }
+    };
+    function getColor(d) {
+            return d >= 500  ? '#49006a' :
+            d >= 250  ? '#7a0177' :
+            d >= 100   ? '#ae017e' :
+            d >= 50   ? '#dd3497' :
+            d >= 30   ? '#f768a1' :
+            d >= 20   ? '#fa9fb5' :
+            d >= 10   ? '#fcc5c0' :
+            d >= 5   ? '#fde0dd' :
+                      '#fff7f3';
+    }
+    
+    var geojsonLayer;
+    var myCurrentSelectionYear = 1977 // the initial year to start the data
+    updateMap(1977)
+    function moveSlider(value) { // function called by the slider that receives the value from the slider. 
+        // console.log(value)
+        document.getElementById('daYear').innerHTML = 'Year: ' + value // assign the value of year into the text
+        var printedString="";
+        var moment;
+        for (moment in specialAreas[value]) {
+            if (printedString != ""){
+                printedString=printedString+ " and "
+            }
+            printedString=printedString+ moment+ ": "+ specialAreas[value][moment]["Frequency"].toString();
+
+            //console.log(moment);
+        }
+        document.getElementById('specialArea').innerHTML = printedString;
+        updateMap(value);
+        geojsonLayer.resetStyle() // leaflet method to reassign a Style. 
+        // console.log(myCurrentSelectionYear)
+    }
+    function updateMap(selectedYear) {
+        if (geojsonLayer) {
+            map.removeLayer(geojsonLayer);
+        } 
+    // Generate random points inside each polygon
+        var filteredFeatures = final_data.features.filter(f => f.properties && f.properties.Year == selectedYear);
+        //console.log(filteredFeatures);
+        geojsonLayer = L.geoJson(filteredFeatures, { style: myStyle, 
+            pane: 'overlayPane', onEachFeature: onEachFeature}).addTo(map)
+    }
+
+    var info = L.control({position: 'bottomleft'});
+
+    info.onAdd = function (map) {
+        this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+        this.update();
+        return this._div;
+    };
+
+// method that we will use to update the control based on feature properties passed
+    info.update = function (props) {
+        this._div.innerHTML = '<h4> Given Master Release is on Discogs</h4>' +  (props ?
+            '<b>' + props.name + '</b>  had ' + props.Frequency + ' releases in '+ props.Year
+            : 'Hover over a state');
+    };
+
+    function highlightFeature(e) {
+        var layer = e.target;
+
+            layer.setStyle({
+                weight: 5,
+                color: 'maroon',
+                dashArray: ''
+        });
+
+        layer.bringToFront();
+        info.update(layer.feature.properties);
+    }
+    function resetHighlight(e) {
+        geojsonLayer.resetStyle(e.target);
+        info.update();
+    }
+    function zoomToFeature(e) {
+        map.fitBounds(e.target.getBounds());
+    }
+    function onEachFeature(feature, layer) {
+    layer.on({
+        mouseover: highlightFeature,
+        mouseout: resetHighlight,
+        click: zoomToFeature
+    });
+    }
+    info.addTo(map);
+    moveSlider(myCurrentSelectionYear) // run the function moveSlider with the year 1977 to start with our first year. 
+    window.onload = function() {
+        document.getElementById('yearSlider').value = 1977;  
+        document.getElementById('daYear').innerHTML = 'Year: ' + 1977
+    }; // slider goes back to 1900 after refreshing
+        
+        var legend = L.control({position: 'bottomright'});
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'info legend'),
+                grades = [0, 5, 10, 20, 50, 100, 250, 500],
+                labels = [];
+
+            for (var i = 0; i < grades.length; i++) {
+                div.innerHTML +=
+                    '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+                    grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + ' releases'+ '<br>' : '+ releases');
+            }
+            return div;
+        };
+        legend.addTo(map);
+
+        var legendTitle = L.control({position: 'bottomright'});
+            legendTitle.onAdd = function (map) {
+                this._div = L.DomUtil.create('div', 'info');
+                this.update();
+                return this._div;
+            };
+
+            legendTitle.update = function (props) {
+                this._div.innerHTML = '<h3><u>Releases per Year</u></h3>';
+            };
+            legendTitle.addTo(map);
+</script>   
+</body>
+</html>
