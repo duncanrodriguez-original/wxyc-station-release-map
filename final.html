@@ -87,7 +87,7 @@
             font-size: medium;
             margin: auto;
         }
-        
+/* leaflet*/        
         .legend {
             line-height: 22px;
             color: hsl(292, 79%, 7%);
@@ -134,11 +134,12 @@
     <h5> Credit to Discogs and their incredible data set, the WXYC tech team and the work they have already done cleaning the station data set, Copilot and DeepSeek for providing help when ability ran out, Leaflet and W3 schools for more old fashioned guide on HTML, JS and Python, and Professor Arce for all his grace (and the homeworks I referenced)</h5>
 </body>
 <script>
-       function loadData(selectedYear) {
-            var script = document.createElement('script');
-            script.src = `./split_data/data_${selectedYear}.js`;
-            document.head.appendChild(script);
-        }
+    /*copilot*/
+    function loadData(selectedYear) {
+        var script = document.createElement('script');
+        script.src = `./split_data/data_${selectedYear}.js`;
+        document.head.appendChild(script);
+    }
 
     //HW made by Sarah Followill // Edited and annotated by J Arce
     var map = L.map('map').setView([39,-27], 2);
@@ -212,7 +213,7 @@
         geojsonLayer = L.geoJson(filteredFeatures, { style: myStyle, 
             pane: 'overlayPane', onEachFeature: onEachFeature}).addTo(map)
     }
-
+//leaflet
     var info = L.control({position: 'bottomleft'});
 
     info.onAdd = function (map) {
@@ -221,13 +222,13 @@
         return this._div;
     };
 
-// method that we will use to update the control based on feature properties passed
+// (leaftlet) method that we will use to update the control based on feature properties passed
     info.update = function (props) {
         this._div.innerHTML = '<h4> Given Master Release is on Discogs</h4>' +  (props ?
             '<b>' + props.name + '</b>  had ' + props.Frequency + ' releases in '+ props.Year
             : 'Hover over a country');
     };
-
+//leaflet
     function highlightFeature(e) {
         var layer = e.target;
 
@@ -240,13 +241,16 @@
         layer.bringToFront();
         info.update(layer.feature.properties);
     }
+//leaflet
     function resetHighlight(e) {
         geojsonLayer.resetStyle(e.target);
         info.update();
     }
+//leaflet
     function zoomToFeature(e) {
         map.fitBounds(e.target.getBounds());
     }
+//leaflet 
     function onEachFeature(feature, layer) {
     layer.on({
         mouseover: highlightFeature,
@@ -259,13 +263,12 @@
     window.onload = function() {
         document.getElementById('yearSlider').value = 1977;  
         document.getElementById('daYear').innerHTML = 'Year: ' + 1977
-        loadData(1977);
         for(var i=0; i<47; i++){
-            updateMap(1977+i)
+            loadData(1977+i)
         }
         updateMap(1977);
     }; // slider goes back to 1900 after refreshing
-        
+//leaflet docs website        
         var legend = L.control({position: 'bottomright'});
         legend.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'info legend'),
@@ -280,13 +283,13 @@
             return div;
         };
         legend.addTo(map);
-
-        var legendTitle = L.control({position: 'bottomright'});
-            legendTitle.onAdd = function (map) {
-                this._div = L.DomUtil.create('div', 'info');
-                this.update();
-                return this._div;
-            };
+//ai maybe or other
+    var legendTitle = L.control({position: 'bottomright'});
+        legendTitle.onAdd = function (map) {
+        this._div = L.DomUtil.create('div', 'info');
+        this.update();
+        return this._div;
+    };
 
             legendTitle.update = function (props) {
                 this._div.innerHTML = '<h3><u>Releases per Year</u></h3>';
