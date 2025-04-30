@@ -135,10 +135,11 @@
 </body>
 <script>
     /*copilot*/
-    function loadData(selectedYear) {
+    function loadData(year) {
         var script = document.createElement('script');
-        script.src = `./split_data/data_${selectedYear}.js`;
+        script.src = `./split_data/data_${year}.js`;
         document.head.appendChild(script);
+        return window[`final_data_${year}`]?.features || [];
     }
 
     //HW made by Sarah Followill // Edited and annotated by J Arce
@@ -174,10 +175,9 @@
                       '#fff7f3';
     }
     
-    var geojsonLayer;
+    var geojsonLayer=L.geoJson(loadData(myCurrentSelectionYear), { style: myStyle, onEachFeature: onEachFeature});
     var myCurrentSelectionYear = 1977 // the initial year to start the data
     var normalizer=year_values["1977"]["Frequency"];
-    updateMap(1977)
     function moveSlider(value) { // function called by the slider that receives the value from the slider. 
         // console.log(value)
         document.getElementById('daYear').innerHTML = 'Year: ' + value // assign the value of year into the text
@@ -189,31 +189,21 @@
                 printedString=printedString+ " and "
             }
             printedString=printedString+ moment+ ": "+ specialAreas[value][moment]["Frequency"].toString();
-
-            //console.log(moment);
         }
         printedString=printedString+ " of "+normalizer+" total releases and "+ year_master_values[value]["Frequency"]+" master releases in "+value;
         document.getElementById('specialArea').innerHTML = printedString;
-        updateMap(value);
-        geojsonLayer?.resetStyle() // leaflet method to reassign a Style. 
-        // console.log(myCurrentSelectionYear)
+        map.removeLayer(geojsonLayer);
+        geojsonLayer = L.geoJson(loadData(value), {style: myStyle, onEachFeature: onEachFeature})
+        map.addLayer(geojsonLayer);
     }
-    function updateMap(selectedYear) {
-        if (geojsonLayer) {
-            map.removeLayer(geojsonLayer);
-        } 
-    // - copilot
-        var script = document.createElement('script');
-        script.src = `./split_data/data_${selectedYear}.js`;
-        script.id = "data-script";
-        normalizer=year_values[selectedYear]["Frequency"];
-        document.head.appendChild(script);
-        var filteredFeatures = window[`final_data_${selectedYear}`]?.features || [];
-        //console.log(filteredFeatures);
-        geojsonLayer = L.geoJson(filteredFeatures, { style: myStyle, 
-            pane: 'overlayPane', onEachFeature: onEachFeature}).addTo(map)
-    }
-//leaflet
+
+    window.onload = function() {
+        document.getElementById('yearSlider').value = 1977;  
+        document.getElementById('daYear').innerHTML = 'Year: ' + 1977
+        moveSlider(myCurrentSelectionYear) // run the function moveSlider with the year 1977 to start with our first year. 
+    }; // slider goes back to 1900 after refreshing
+
+    //leaflet
     var info = L.control({position: 'bottomleft'});
 
     info.onAdd = function (map) {
@@ -259,16 +249,7 @@
     });
     }
     info.addTo(map);
-    moveSlider(myCurrentSelectionYear) // run the function moveSlider with the year 1977 to start with our first year. 
-    window.onload = function() {
-        document.getElementById('yearSlider').value = 1977;  
-        document.getElementById('daYear').innerHTML = 'Year: ' + 1977
-        for(var i=0; i<47; i++){
-            loadData(1977+i)
-        }
-        updateMap(1977);
-    }; // slider goes back to 1900 after refreshing
-//leaflet docs website        
+      
         var legend = L.control({position: 'bottomright'});
         legend.onAdd = function (map) {
             var div = L.DomUtil.create('div', 'info legend'),
@@ -283,7 +264,7 @@
             return div;
         };
         legend.addTo(map);
-//ai maybe or other
+
     var legendTitle = L.control({position: 'bottomright'});
         legendTitle.onAdd = function (map) {
         this._div = L.DomUtil.create('div', 'info');
@@ -291,10 +272,10 @@
         return this._div;
     };
 
-            legendTitle.update = function (props) {
+    legendTitle.update = function (props) {
                 this._div.innerHTML = '<h3><u>Releases per Year</u></h3>';
-            };
-            legendTitle.addTo(map);
+    };
+    legendTitle.addTo(map);
 </script>   
 </body>
 </html>
